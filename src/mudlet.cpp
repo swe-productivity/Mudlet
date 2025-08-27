@@ -3544,22 +3544,6 @@ void mudlet::slot_notes()
     pNotes->show();
 }
 
-// This opens a profile specific IRC client for that client so should only be
-// enabled when a profile is loaded.
-void mudlet::slot_irc()
-{
-    Host* pHost = getActiveHost();
-    if (!pHost) {
-        return;
-    }
-
-    if (!pHost->mpDlgIRC) {
-        pHost->mpDlgIRC = new dlgIRC(pHost);
-    }
-    pHost->mpDlgIRC->raise();
-    pHost->mpDlgIRC->show();
-}
-
 void mudlet::slot_profileDiscord()
 {
     Host* pHost = getActiveHost();
