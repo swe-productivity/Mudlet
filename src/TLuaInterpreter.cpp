@@ -5343,6 +5343,7 @@ void TLuaInterpreter::initLuaGlobals()
     lua_register(pGlobalLua, "setAppStyleSheet", TLuaInterpreter::setAppStyleSheet);
     lua_register(pGlobalLua, "setProfileStyleSheet", TLuaInterpreter::setProfileStyleSheet);
     lua_register(pGlobalLua, "sendIrc", TLuaInterpreter::sendIrc);
+    lua_register(pGlobalLua, "openIRC", TLuaInterpreter::openIRC);
     lua_register(pGlobalLua, "getIrcNick", TLuaInterpreter::getIrcNick);
     lua_register(pGlobalLua, "getIrcServer", TLuaInterpreter::getIrcServer);
     lua_register(pGlobalLua, "getIrcChannels", TLuaInterpreter::getIrcChannels);
