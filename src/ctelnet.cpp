@@ -8,7 +8,7 @@
  *   Copyright (C) 2016 by Ian Adkins - ieadkins@gmail.com                 *
  *   Copyright (C) 2017 by Michael Hupp - darksix@northfire.org            *
  *   Copyright (C) 2017 by Colton Rasbury - rasbury.colton@gmail.com       *
- *   Copyright (C) 2023 by Lecker Kebap - Leris@mudlet.org                 *
+ *   Copyright (C) 2023-2025 by Lecker Kebap - Leris@mudlet.org            *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -44,7 +44,7 @@
 #include "dlgMapper.h"
 #include "mudlet.h"
 #if defined(INCLUDE_3DMAPPER)
-#include "glwidget.h"
+#include "glwidget_integration.h"
 #endif
 
 #include "pre_guard.h"
@@ -575,8 +575,8 @@ void cTelnet::slot_socketDisconnected()
         if (sslerr) {
             mDontReconnect = true;
 
-            for (int a = 0; a < sslErrors.count(); ++a) {
-                reason.append(qsl("        %1\n").arg(QString(sslErrors.at(a).errorString())));
+            for (const auto& error : sslErrors) {
+                reason.append(qsl("        %1\n").arg(QString(error.errorString())));
             }
             QString err = tr("[ ALERT ] - Socket got disconnected.\nReason: ") % reason;
             postMessage(err);
@@ -713,8 +713,8 @@ bool cTelnet::sendData(QString& data, const bool permitDataSendRequestEvent)
             }
         } else {
             // Plain, raw ASCII, we hope!
-            for (int i = 0, total = data.size(); i < total; ++i) {
-                if ((!mEncodingWarningIssued) && (data.at(i).row() || data.at(i).cell() > 127)){
+            for (const auto c : data) {
+                if ((!mEncodingWarningIssued) && (c.row() || c.cell() > 127)){
                     QString errorMsg = tr(errorMsgTemplate,
                                           "%1 is the command that was sent to the game.").arg(data);
                     postMessage(errorMsg);
@@ -836,7 +836,7 @@ void cTelnet::sendNAWS(int width, int height)
     socketOutRaw(message);
 }
 
-void cTelnet::sendTelnetOption(char type, char option)
+void cTelnet::sendTelnetOption(char type, unsigned char option)
 {
 #ifdef DEBUG_TELNET
     QString _type;
@@ -884,7 +884,10 @@ void cTelnet::slot_replyFinished(QNetworkReply* reply)
         }
 
         QSaveFile file(mServerPackage);
-        file.open(QFile::WriteOnly);
+        if (!file.open(QFile::WriteOnly)) {
+            qWarning() << "ctelnet: failed to open file for writing:" << file.errorString();
+            return;
+        }
         file.write(reply->readAll());
         if (!file.commit()) {
             qDebug() << "cTelnet::slot_replyFinished: error downloading package: " << file.errorString();
@@ -907,6 +910,22 @@ void cTelnet::slot_setDownloadProgress(qint64 got, qint64 tot)
 {
     mpProgressDialog->setRange(0, static_cast<int>(tot));
     mpProgressDialog->setValue(static_cast<int>(got));
+}
+
+// Helper to format short telnet commands for debugging
+QString cTelnet::formatShortTelnetCommand(const std::string& telnetCommand, const QString& commandName) const
+{
+    QByteArray cmdBytes(telnetCommand.data(), telnetCommand.size());
+    QString hexStr = cmdBytes.toHex(' ');
+    QString decoded = QString(" (IAC %1").arg(commandName);
+    
+    if (telnetCommand.size() == 2 && !commandName.isEmpty()) {
+        decoded += " <missing option>)";
+    } else {
+        decoded += ")";
+    }
+    
+    return QString("hex: %1%2").arg(hexStr, decoded);
 }
 
 // Helper to identify which protocol is being negotiated!
@@ -1641,6 +1660,13 @@ void cTelnet::autoEnableMXPProcessor()
 
 void cTelnet::processTelnetCommand(const std::string& telnetCommand)
 {
+    // Ensure telnetCommand has sufficient length before accessing indices
+    if (telnetCommand.size() < 2) {
+        QString debugInfo = formatShortTelnetCommand(telnetCommand, QString());
+        qDebug() << "WARNING: telnetCommand too short (size:" << telnetCommand.size() << "), ignoring -" << debugInfo;
+        return;
+    }
+    
     char ch = telnetCommand[1];
 #if defined(DEBUG_TELNET) && (DEBUG_TELNET > 1)
     QString commandType;
@@ -1708,7 +1734,7 @@ void cTelnet::processTelnetCommand(const std::string& telnetCommand)
     }
 #endif
 
-    char option;
+    unsigned char option;
     switch (ch) {
     case TN_GA:
     case TN_EOR: {
@@ -1723,6 +1749,11 @@ void cTelnet::processTelnetCommand(const std::string& telnetCommand)
     }
     case TN_WILL: {
         //server wants to enable some option (or he sends a timing-mark)...
+        if (telnetCommand.size() < 3) {
+            QString debugInfo = formatShortTelnetCommand(telnetCommand, "WILL");
+            qDebug() << "WARNING: TN_WILL command too short (size:" << telnetCommand.size() << "), ignoring -" << debugInfo;
+            return;
+        }
         option = telnetCommand[2];
         trackKaVirNegotiation(option); // Track for KaVir protocol
         const auto idxOption = static_cast<size_t>(option);
@@ -2039,6 +2070,11 @@ void cTelnet::processTelnetCommand(const std::string& telnetCommand)
 
     case TN_WONT: {
         //server refuses to enable some option
+        if (telnetCommand.size() < 3) {
+            QString debugInfo = formatShortTelnetCommand(telnetCommand, "WONT");
+            qDebug() << "WARNING: TN_WONT command too short (size:" << telnetCommand.size() << "), ignoring -" << debugInfo;
+            return;
+        }
         option = telnetCommand[2];
         const auto idxOption = static_cast<size_t>(option);
 #ifdef DEBUG_TELNET
@@ -2134,6 +2170,11 @@ void cTelnet::processTelnetCommand(const std::string& telnetCommand)
 
     case TN_DO: {
         //server wants us to enable some option
+        if (telnetCommand.size() < 3) {
+            QString debugInfo = formatShortTelnetCommand(telnetCommand, "DO");
+            qDebug() << "WARNING: TN_DO command too short (size:" << telnetCommand.size() << "), ignoring -" << debugInfo;
+            return;
+        }
         option = telnetCommand[2];
         trackKaVirNegotiation(option); // Track for KaVir protocol
         const auto idxOption = static_cast<size_t>(option);
@@ -2338,6 +2379,11 @@ void cTelnet::processTelnetCommand(const std::string& telnetCommand)
     }
     case TN_DONT: {
         //only respond if value changed or if this option has not been announced yet
+        if (telnetCommand.size() < 3) {
+            QString debugInfo = formatShortTelnetCommand(telnetCommand, "DONT");
+            qDebug() << "WARNING: TN_DONT command too short (size:" << telnetCommand.size() << "), ignoring -" << debugInfo;
+            return;
+        }
         option = telnetCommand[2];
         const auto idxOption = static_cast<size_t>(option);
 #ifdef DEBUG_TELNET
@@ -2412,6 +2458,10 @@ void cTelnet::processTelnetCommand(const std::string& telnetCommand)
     }
 
     case TN_SB: {
+        if (telnetCommand.size() < 3) {
+            qDebug() << "WARNING: TN_SB command too short (size:" << telnetCommand.size() << "), ignoring";
+            return;
+        }
         option = telnetCommand[2];
 
         // NEW_ENVIRON
@@ -2455,8 +2505,8 @@ void cTelnet::processTelnetCommand(const std::string& telnetCommand)
                 QByteArray acceptedCharacterSet;
 
                 if (!characterSetList.isEmpty()) {
-                    for (int i = 1; i < characterSetList.size(); ++i) {
-                        QByteArray characterSet = characterSetList.at(i).toUpper();
+                    for (QByteArray characterSet : characterSetList) {
+                        characterSet = characterSet.toUpper();
 
                         if (mAcceptableEncodings.contains(characterSet) ||
                             mAcceptableEncodings.contains(("M_" + characterSet)) ||
@@ -2803,24 +2853,29 @@ void cTelnet::processTelnetCommand(const std::string& telnetCommand)
 
     // raise sysTelnetEvent for all unhandled protocols
     // EXCEPT TN_GA / TN_EOR, which come at the end of every transmission, for performance reasons
-    if (telnetCommand[1] != TN_GA && telnetCommand[1] != TN_EOR) {
-        auto type = static_cast<unsigned char>(telnetCommand[1]);
-        auto telnetOption = static_cast<unsigned char>(telnetCommand[2]);
-        QString msg = telnetCommand.c_str();
-        if (telnetCommand.size() >= 6) {
-            msg = msg.mid(3, telnetCommand.size() - 5);
-        }
+    if (telnetCommand.size() >= 2) {
+        const char* data = telnetCommand.data();
+        if (data[1] != TN_GA && data[1] != TN_EOR) {
+            const auto type = static_cast<unsigned char>(data[1]);
+            // Only access telnetCommand[2] if it exists
+            const auto telnetOption = telnetCommand.size() > 2 ? static_cast<unsigned char>(data[2]) : 0;
+            QString msg = telnetCommand.c_str();
+            if (telnetCommand.size() >= 6) {
+                msg = msg.mid(3, telnetCommand.size() - 5);
+            }
 
-        TEvent event {};
-        event.mArgumentList.append(qsl("sysTelnetEvent"));
-        event.mArgumentTypeList.append(ARGUMENT_TYPE_STRING);
-        event.mArgumentList.append(QString::number(type));
-        event.mArgumentTypeList.append(ARGUMENT_TYPE_NUMBER);
-        event.mArgumentList.append(QString::number(telnetOption));
-        event.mArgumentTypeList.append(ARGUMENT_TYPE_NUMBER);
-        event.mArgumentList.append(msg);
-        event.mArgumentTypeList.append(ARGUMENT_TYPE_STRING);
-        mpHost->raiseEvent(event);
+            TEvent event {};
+            event.mArgumentList.append(qsl("sysTelnetEvent"));
+            event.mArgumentTypeList.append(ARGUMENT_TYPE_STRING);
+            event.mArgumentList.append(QString::number(type));
+            event.mArgumentTypeList.append(ARGUMENT_TYPE_NUMBER);
+            event.mArgumentList.append(QString::number(telnetOption));
+            event.mArgumentTypeList.append(ARGUMENT_TYPE_NUMBER);
+            event.mArgumentList.append(msg);
+            event.mArgumentTypeList.append(ARGUMENT_TYPE_STRING);
+            mpHost->raiseEvent(event);
+        }
+        
     }
 }
 

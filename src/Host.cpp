@@ -4,7 +4,7 @@
  *   Copyright (C) 2015-2025 by Stephen Lyons - slysven@virginmedia.com    *
  *   Copyright (C) 2016 by Ian Adkins - ieadkins@gmail.com                 *
  *   Copyright (C) 2018 by Huadong Qi - novload@outlook.com                *
- *   Copyright (C) 2023 by Lecker Kebap - Leris@mudlet.org                 *
+ *   Copyright (C) 2023-2025 by Lecker Kebap - Leris@mudlet.org            *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -219,80 +219,13 @@ QString stopWatch::getElapsedDayTimeString() const
 Host::Host(int port, const QString& hostname, const QString& login, const QString& pass, int id)
 : mTelnet(this, hostname)
 , mLuaInterpreter(this, hostname, id)
-, commandLineMinimumHeight(30)
-, mAlertOnNewData(true)
-, mAllowToSendCommand(true)
-, mAutoClearCommandLineAfterSend(false)
-, mHighlightHistory(true)
-, mBlockScriptCompile(true)
-, mBlockStopWatchCreation(true)
-, mEchoLuaErrors(false)
-, mCommandSeparator(qsl(";;"))
 , mMxpClient(this)
 , mMxpProcessor(&mMxpClient)
-, mFORCE_GA_OFF(false)
-, mFORCE_NO_COMPRESSION(false)
-, mFORCE_SAVE_ON_EXIT(true)
-, mSslTsl(false)
-, mSslIgnoreExpired(false)
-, mSslIgnoreSelfSigned(false)
-, mSslIgnoreAll(false)
-, mUseProxy(false)
-, mProxyPort(0)
-, mIsProfileLoadingSequence(false)
-, mpEditorDialog(nullptr)
 , mpMap(new TMap(this, hostname))
 , mpMedia(new TMedia(this, hostname))
 , mpAuth(new GMCPAuthenticator(this))
-, mpNotePad(nullptr)
-, mCommandEchoMode(CommandEchoMode::ScriptControl)
-, mIsCurrentLogFileInHtmlFormat(false)
-, mIsNextLogFileInHtmlFormat(false)
-, mIsLoggingTimestamps(false)
-, mLogFileNameFormat(QLatin1String("yyyy-MM-dd#HH-mm-ss")) // In the past we have used "yyyy-MM-dd#hh-mm-ss" but we always want a 24-hour clock
-, mResetProfile(false)
-, mScreenHeight(25)
-, mScreenWidth(90)
-, mTimeout(60)
-, mUSE_FORCE_LF_AFTER_PROMPT(false)
-, mUSE_IRE_DRIVER_BUGFIX(false)
-, mUSE_UNIX_EOL(false)
-, mWrapAt(100)
-, mWrapIndentCount(0)
-, mWrapHangingIndentCount(0)
-, mEditorAutoComplete(true)
-, mEditorTheme(QLatin1String("Mudlet"))
-, mEditorThemeFile(QLatin1String("Mudlet.tmTheme"))
-, mThemePreviewItemID(-1)
-, mThemePreviewType(QString())
-, mMapStrongHighlight(false)
-, mEnableSpellCheck(true)
-, mDiscordDisableServerSide(true)
-, mDiscordAccessFlags(DiscordLuaAccessEnabled | DiscordSetSubMask)
-, mLineSize(10.0)
-, mRoomSize(0.5)
-, mMapInfoContributors(QSet<QString>{"Short"})
-, mBubbleMode(false)
-, mShowRoomID(false)
-, mShowPanel(true)
-, mServerGUI_Package_version(QLatin1String("-1"))
-, mServerGUI_Package_name(QLatin1String("nothing"))
-, mAcceptServerGUI(true)
-, mAcceptServerMedia(true)
-, mCommandLineFgColor(Qt::darkGray)
-, mCommandLineBgColor(Qt::black)
-, mMapperUseAntiAlias(true)
-, mMapperShowRoomBorders(true)
-, mFORCE_CHARSET_NEGOTIATION_OFF(false)
 , mpDockableMapWidget()
-, mEnableTextAnalyzer(false)
 , mTimerDebugOutputSuppressionInterval(QTime())
-, mSearchOptions(dlgTriggerEditor::SearchOption::SearchOptionNone)
-, mBufferSearchOptions(TConsole::SearchOption::SearchOptionNone)
-, mpDlgIRC(nullptr)
-, mpDlgProfilePreferences(nullptr)
-, mTutorialForCompactLineAlreadyShown(false)
-, mLuaInterface(nullptr)
 , mTriggerUnit(this)
 , mTimerUnit(this)
 , mScriptUnit(this)
@@ -305,23 +238,6 @@ Host::Host(int port, const QString& hostname, const QString& login, const QStrin
 , mLogin(login)
 , mPass(pass)
 , mPort(port)
-, mRetries(5)
-, mSaveProfileOnExit(false)
-, mHaveMapperScript(false)
-, mAutoAmbigousWidthGlyphsSetting(true)
-, mWideAmbigousWidthGlyphs(false)
-, mSGRCodeHasColSpaceId(false)
-, mServerMayRedefineColors(false)
-// DISABLED: - Prevent "None" option for user dictionary - changed to true and not changed anywhere else
-, mEnableUserDictionary(true)
-, mUseSharedDictionary(false)
-, mPlayerRoomStyle(0)
-, mPlayerRoomOuterColor(Qt::red)
-, mPlayerRoomInnerColor(Qt::white)
-, mPlayerRoomOuterDiameterPercentage(120)
-, mPlayerRoomInnerDiameterPercentage(70)
-, mDebugShowAllProblemCodepoints(false)
-, mCompactInputLine(false)
 {
     TDebug::addHost(this, mHostName);
     setDisplayFont(QFont(qsl("Bitstream Vera Sans Mono"), 14, QFont::Normal));
@@ -346,8 +262,10 @@ Host::Host(int port, const QString& hostname, const QString& login, const QStrin
         dirLogFile.mkpath(directoryLogFile);
     }
     mErrorLogFile.setFileName(logFileName);
-    mErrorLogFile.open(QIODevice::Append);
-     /*
+    if (!mErrorLogFile.open(QIODevice::Append)) {
+        qWarning() << "Host: failed to open error log file for appending:" << mErrorLogFile.errorString();
+    }
+    /*
      * Mudlet will log messages in ASCII, but force a universal (UTF-8) encoding
      * since user-content can contain anything and someone else reviewing
      * such logs need not have the same default encoding which would be used
@@ -360,12 +278,14 @@ Host::Host(int port, const QString& hostname, const QString& login, const QStrin
     mDoubleClickIgnore.insert('\'');
 
     // search engine load entries
+    // clang-format off
     mSearchEngineData = QMap<QString, QString>(
-    {
-                    {"Bing",       "https://www.bing.com/search?q="},
-                    {"DuckDuckGo", "https://duckduckgo.com/?q="},
-                    {"Google",     "https://www.google.com/search?q="}
-    });
+        {
+            {"Bing",       "https://www.bing.com/search?q="},
+            {"DuckDuckGo", "https://duckduckgo.com/?q="},
+            {"Google",     "https://www.google.com/search?q="}
+        });
+    // clang-format on
 
     // These details are filled in by the dlgConnectionProfile class when that
     // is used to select a profile however when the profile is auto-loaded or
@@ -405,19 +325,17 @@ Host::Host(int port, const QString& hostname, const QString& login, const QStrin
     }
 
     if (mudlet::self()->smFirstLaunch) {
-        QTimer::singleShot(0, this, [this]() {
-            mpConsole->mpCommandLine->setPlaceholderText(tr("Text to send to the game"));
-        });
+        QTimer::singleShot(0, this, [this]() { mpConsole->mpCommandLine->setPlaceholderText(tr("Text to send to the game")); });
     }
 
-    connect(&mTelnet, &cTelnet::signal_disconnected, this, [this](){
+    connect(&mTelnet, &cTelnet::signal_disconnected, this, [this]() {
         purgeTimer.start(1min);
 
         if (getForceMXPProcessorOn()) {
             mMxpProcessor.disable();
         }
     });
-    connect(&mTelnet, &cTelnet::signal_connected, this, [this](){
+    connect(&mTelnet, &cTelnet::signal_connected, this, [this]() {
         purgeTimer.stop();
 
         if (getForceMXPProcessorOn()) {
@@ -618,10 +536,8 @@ void Host::autoSaveMap()
 
 void Host::loadPackageInfo()
 {
-    const QStringList packages = mInstalledPackages;
-    for (int i = 0; i < packages.size(); i++) {
-        const QString packagePath{mudlet::self()->getMudletPath(enums::profilePackagePath, getName(), packages.at(i))};
-        const QDir dir(packagePath);
+    for (const auto& package : mInstalledPackages) {
+        const QDir dir(mudlet::self()->getMudletPath(enums::profilePackagePath, getName(), package));
         if (dir.exists(qsl("config.lua"))) {
             getPackageConfig(dir.absoluteFilePath(qsl("config.lua")));
         }
@@ -1221,7 +1137,10 @@ void Host::check_for_mappingscript()
         QUiLoader loader;
 
         QFile file(":/ui/lacking_mapper_script.ui");
-        file.open(QFile::ReadOnly);
+        if (!file.open(QFile::ReadOnly)) {
+            qWarning() << "Host: failed to open lacking_mapper_script.ui for reading:" << file.errorString();
+            return;
+        }
 
         auto dialog = dynamic_cast<QDialog*>(loader.load(&file, mudlet::self()));
         file.close();
@@ -1347,11 +1266,10 @@ void Host::send(QString cmd, bool wantPrint, bool dontExpandAliases)
         return;
     }
 
-    for (int i = 0, total = commandList.size(); i < total; ++i) {
-        if (commandList.at(i).isEmpty()) {
+    for (QString& command : commandList) {
+        if (command.isEmpty()) {
             continue;
         }
-        QString command = commandList.at(i);
         command.remove(QChar::LineFeed);
         if (dontExpandAliases) {
             mTelnet.sendData(command);
@@ -1430,8 +1348,7 @@ int Host::findStopWatchId(const QString& name) const
     if (total > 1) {
         std::sort(stopWatchIdList.begin(), stopWatchIdList.end());
     }
-    for (int index = 0, total = stopWatchIdList.size(); index < total; ++index) {
-        auto currentId = stopWatchIdList.at(index);
+    for (const int currentId: stopWatchIdList) {
         auto pCurrentStopWatch = mStopWatchMap.value(currentId);
         if (pCurrentStopWatch->name() == name) {
             return currentId;
@@ -1656,8 +1573,7 @@ QPair<bool, QString> Host::setStopWatchName(const QString& currentName, const QS
     int alreadyUsedId = 0;
     // we are looking BOTH for the current name and checking that any other
     // ones WITH names do not match the new name:
-    for (int index = 0; index < total; ++index) {
-        auto currentId = stopWatchIdList.at(index);
+    for (const int currentId : stopWatchIdList) {
         auto pCurrentStopWatch = mStopWatchMap.value(currentId);
         // This will also pick up the FIRST (lowest id) currently unnamed
         // stopwatch:
@@ -1781,14 +1697,14 @@ void Host::raiseEvent(const TEvent& pE)
 
     if (mAnonymousEventHandlerFunctions.contains(pE.mArgumentList.at(0))) {
         const QStringList functionsList = mAnonymousEventHandlerFunctions.value(pE.mArgumentList.at(0));
-        for (int i = 0, total = functionsList.size(); i < total; ++i) {
-            mLuaInterpreter.callEventHandler(functionsList.at(i), pE);
+        for (const QString& function : functionsList) {
+            mLuaInterpreter.callEventHandler(function, pE);
         }
     }
     if (mAnonymousEventHandlerFunctions.contains(star)) {
         const QStringList functionsList = mAnonymousEventHandlerFunctions.value(star);
-        for (int i = 0, total = functionsList.size(); i < total; ++i) {
-            mLuaInterpreter.callEventHandler(functionsList.at(i), pE);
+        for (const QString& function : functionsList) {
+            mLuaInterpreter.callEventHandler(function, pE);
         }
     }
 
@@ -1943,7 +1859,10 @@ std::pair<bool, QString> Host::installPackage(const QString& fileName, enums::Pa
         if (thing != enums::PackageModuleType::ModuleFromUI) {
             QUiLoader loader(this);
             QFile uiFile(qsl(":/ui/package_manager_unpack.ui"));
-            uiFile.open(QFile::ReadOnly);
+            if (!uiFile.open(QFile::ReadOnly)) {
+                qWarning() << "Host: failed to open package_manager_unpack.ui for reading:" << uiFile.errorString();
+                return {false, qsl("could not open unpacking progress dialog UI file")};
+            }
             pUnzipDialog = dynamic_cast<QDialog*>(loader.load(&uiFile, nullptr));
             uiFile.close();
             if (!pUnzipDialog) {
@@ -2012,7 +1931,10 @@ std::pair<bool, QString> Host::installPackage(const QString& fileName, enums::Pa
         const QFileInfoList entries = _dir.entryInfoList(_filterList, QDir::Files);
         for (auto& entry : entries) {
             file2.setFileName(entry.absoluteFilePath());
-            file2.open(QFile::ReadOnly | QFile::Text);
+            if (!file2.open(QFile::ReadOnly | QFile::Text)) {
+                qWarning() << "Host: failed to open file for reading:" << entry.absoluteFilePath() << file2.errorString();
+                continue;
+            }
             XMLimport reader(this);
             if (thing != enums::PackageModuleType::Package) {
                 QStringList moduleEntry;
@@ -2028,7 +1950,10 @@ std::pair<bool, QString> Host::installPackage(const QString& fileName, enums::Pa
         }
     } else {
         file2.setFileName(fileName);
-        file2.open(QFile::ReadOnly | QFile::Text);
+        if (!file2.open(QFile::ReadOnly | QFile::Text)) {
+            qWarning() << "Host: failed to open file for reading:" << fileName << file2.errorString();
+            return {false, qsl("could not open package file")};
+        }
         XMLimport reader(this);
         if (thing != enums::PackageModuleType::Package) {
             QStringList moduleEntry;
@@ -2312,13 +2237,12 @@ void Host::setupSandboxedLuaState(lua_State* L)
         // Environment manipulation
         "getfenv", "setfenv",
         // Raw memory access
-        "collectgarbage",
-        nullptr
+        "collectgarbage"
     };
     
-    for (int i = 0; dangerousFunctions[i] != nullptr; ++i) {
+    for (const auto& function : dangerousFunctions) {
         lua_pushnil(L);
-        lua_setglobal(L, dangerousFunctions[i]);
+        lua_setglobal(L, function);
     }
     
     // Remove package system entirely to prevent require() restoration
@@ -2329,13 +2253,12 @@ void Host::setupSandboxedLuaState(lua_State* L)
     lua_getglobal(L, "_G");
     if (lua_istable(L, -1)) {
         const char* removedBaseFunctions[] = {
-            "rawget", "rawset", "rawequal", "rawlen",
-            nullptr
+            "rawget", "rawset", "rawequal", "rawlen"
         };
         
-        for (int i = 0; removedBaseFunctions[i] != nullptr; ++i) {
+        for (const auto& function : removedBaseFunctions) {
             lua_pushnil(L);
-            lua_setfield(L, -2, removedBaseFunctions[i]);
+            lua_setfield(L, -2, function);
         }
     }
     lua_pop(L, 1); // pop _G
@@ -4573,4 +4496,83 @@ QFont Host::getAndClearTempDisplayFont()
     mTempDisplayFont.reset();
     mTempDisplayFontAttributes.reset();
     return tempFont;
+}
+
+// Static whitelist of valid experiments
+const QSet<QString> Host::mValidExperiments = {
+    qsl("experiment.rendering.originalish"),
+    qsl("experiment.rendering.more-transparent"),
+    qsl("experiment.3dmap.modernmapper"),
+    qsl("experiment.render-in-out-exits"),
+};
+
+bool Host::experimentEnabled(const QString& experimentKey) const
+{
+    return mExperiments.value(experimentKey, false);
+}
+
+std::pair<bool, QString> Host::setExperimentEnabled(const QString& experimentKey, bool enabled)
+{
+    // Validate experiment key against whitelist
+    if (!mValidExperiments.contains(experimentKey)) {
+        return {false, qsl("Invalid experiment name: %1").arg(experimentKey)};
+    }
+    
+    if (enabled) {
+        // Check if this is a grouped experiment (contains dots beyond "experiment.")
+        if (experimentKey.count('.') >= 2) {
+            // Extract group (e.g., "experiment.rendering" from "experiment.rendering.originalish")
+            QString group = experimentKey.section('.', 0, 1);
+            
+            // Disable all other experiments in the same group
+            for (auto it = mExperiments.begin(); it != mExperiments.end(); ++it) {
+                if (it.key() != experimentKey && it.key().startsWith(group + ".")) {
+                    it.value() = false;
+                }
+            }
+        }
+        mExperiments[experimentKey] = true;
+    } else {
+        mExperiments[experimentKey] = false;
+    }
+    
+#if defined(INCLUDE_3DMAPPER)
+    // Refresh maps if any experiments changed the 3D map
+    if (mpMap && mpMap->mpMapper && mpMap->mpMapper->mp2dMap) {
+        mpMap->mpMapper->mp2dMap->update();
+    }
+    if (mpMap && mpMap->mpM) {
+        mpMap->mpM->update();
+    }
+#endif
+    
+    return {true, QString()};
+}
+
+QString Host::getActiveExperimentInGroup(const QString& group) const
+{
+    QString groupPrefix = group + ".";
+    for (auto it = mExperiments.constBegin(); it != mExperiments.constEnd(); ++it) {
+        if (it.key().startsWith(groupPrefix) && it.value()) {
+            // Return just the experiment name without the group prefix
+            return it.key().mid(groupPrefix.length());
+        }
+    }
+    return QString(); // No active experiment in this group
+}
+
+QStringList Host::getAllExperiments() const
+{
+    QStringList result;
+    for (auto it = mExperiments.constBegin(); it != mExperiments.constEnd(); ++it) {
+        if (it.value()) {
+            result << it.key();
+        }
+    }
+    return result;
+}
+
+QStringList Host::getValidExperiments() const
+{
+    return QStringList(mValidExperiments.constBegin(), mValidExperiments.constEnd());
 }
