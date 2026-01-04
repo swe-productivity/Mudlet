@@ -542,8 +542,6 @@ void XMLimport::readRoom(QMultiHash<int, int>& areamRoomMultiHash, unsigned int*
             } else if (dir == qsl("out")) {
                 pT->out = e;
                 pT->setDoor(qsl("out"), door);
-            } else {
-                // TODO: Handle Special Exits
             }
         } else if (name() == qsl("coord")) {
             if (attributes().value(qsl("x")).toString().isEmpty()) {
@@ -728,6 +726,7 @@ void XMLimport::readHost(Host* pHost)
     setBoolAttributeWithDefault(qsl("mEnableMTTS"), pHost->mEnableMTTS, true);
     setBoolAttributeWithDefault(qsl("mEnableMNES"), pHost->mEnableMNES, false);
     setBoolAttributeWithDefault(qsl("mEnableMXP"), pHost->mEnableMXP, getBoolValueFromLegacyAttributeOrDefault(qsl("mFORCE_MXP_NEGOTIATION_OFF"), true, true));
+    setBoolAttributeWithDefault(qsl("mEnableNAWS"), pHost->mEnableNAWS, true);
     setBoolAttributeWithDefault(qsl("mEnableCHARSET"), pHost->mEnableCHARSET, getBoolValueFromLegacyAttributeOrDefault(qsl("mFORCE_CHARSET_NEGOTIATION_OFF"), true, true));
     setBoolAttributeWithDefault(qsl("mEnableNEWENVIRON"), pHost->mEnableNEWENVIRON, getBoolValueFromLegacyAttributeOrDefault(qsl("forceNewEnvironNegotiationOff"), true, true));
 

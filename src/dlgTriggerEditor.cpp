@@ -98,6 +98,9 @@ using namespace std::chrono_literals;
 // it is disabled):
 static const char* cButtonBaseColor = "baseColor";
 
+// Track whether the shared auto-complete provider has been initialized
+bool dlgTriggerEditor::smAutoCompleteInitialized = false;
+
 dlgTriggerEditor::dlgTriggerEditor(Host* pH)
 : mpHost(pH)
 , mSearchOptions(pH->mSearchOptions)
@@ -503,10 +506,10 @@ dlgTriggerEditor::dlgTriggerEditor(Host* pH)
 
     connect(mpUndoStack, &EditorUndoStack::itemsChanged, this, &dlgTriggerEditor::slot_itemsChanged);
 
-    auto* provider = new edbee::StringTextAutoCompleteProvider();
-    //QScopedPointer<edbee::StringTextAutoCompleteProvider> provider(new edbee::StringTextAutoCompleteProvider);
+    if (!smAutoCompleteInitialized) {
+        auto* provider = new edbee::StringTextAutoCompleteProvider();
 
-    // Add lua functions and reserved lua terms to an AutoComplete provider
+        // Add lua functions and reserved lua terms to an AutoComplete provider
     for (const QString& key : mudlet::smLuaFunctionNames.keys()) {
         provider->add(key, 3, mudlet::smLuaFunctionNames.value(key).toString());
     }
@@ -691,8 +694,10 @@ dlgTriggerEditor::dlgTriggerEditor(Host* pH)
     // DateTime utilities
     provider->add(qsl("datetime.parse"), 4, qsl("datetime.parse(format, date_string)"));
 
-    // Set the newly filled provider to be used by our Edbee instance
-    edbee::Edbee::instance()->autoCompleteProviderList()->setParentProvider(provider);
+        // Transfer ownership to Edbee - deleted automatically at app shutdown
+        edbee::Edbee::instance()->autoCompleteProviderList()->giveProvider(provider);
+        smAutoCompleteInitialized = true;
+    }
 
     mpSourceEditorEdbee->textEditorComponent()->setContextMenuPolicy(Qt::CustomContextMenu);
     connect(mpSourceEditorEdbee->textEditorComponent(), &QWidget::customContextMenuRequested, this, &dlgTriggerEditor::slot_editorContextMenu);
@@ -721,7 +726,7 @@ dlgTriggerEditor::dlgTriggerEditor(Host* pH)
     connect(splitter_right, &QSplitter::splitterMoved, this, &dlgTriggerEditor::slot_rightSplitterMoved);
     // additional settings
     treeWidget_triggers->setColumnCount(1);
-    treeWidget_triggers->setIsTriggerTree();
+    treeWidget_triggers->setTreeType(TreeType::Trigger);
     treeWidget_triggers->setRootIsDecorated(false);
     treeWidget_triggers->setHost(mpHost);
     treeWidget_triggers->header()->hide();
@@ -730,7 +735,7 @@ dlgTriggerEditor::dlgTriggerEditor(Host* pH)
 
     treeWidget_aliases->hide();
     treeWidget_aliases->setHost(mpHost);
-    treeWidget_aliases->setIsAliasTree();
+    treeWidget_aliases->setTreeType(TreeType::Alias);
     treeWidget_aliases->setColumnCount(1);
     treeWidget_aliases->header()->hide();
     treeWidget_aliases->setRootIsDecorated(false);
@@ -739,7 +744,7 @@ dlgTriggerEditor::dlgTriggerEditor(Host* pH)
 
     treeWidget_actions->hide();
     treeWidget_actions->setHost(mpHost);
-    treeWidget_actions->setIsActionTree();
+    treeWidget_actions->setTreeType(TreeType::Action);
     treeWidget_actions->setColumnCount(1);
     treeWidget_actions->header()->hide();
     treeWidget_actions->setRootIsDecorated(false);
@@ -748,7 +753,7 @@ dlgTriggerEditor::dlgTriggerEditor(Host* pH)
 
     treeWidget_timers->hide();
     treeWidget_timers->setHost(mpHost);
-    treeWidget_timers->setIsTimerTree();
+    treeWidget_timers->setTreeType(TreeType::Timer);
     treeWidget_timers->setColumnCount(1);
     treeWidget_timers->header()->hide();
     treeWidget_timers->setRootIsDecorated(false);
@@ -757,7 +762,7 @@ dlgTriggerEditor::dlgTriggerEditor(Host* pH)
 
     treeWidget_variables->hide();
     treeWidget_variables->setHost(mpHost);
-    treeWidget_variables->setIsVarTree();
+    treeWidget_variables->setTreeType(TreeType::Var);
     treeWidget_variables->setColumnCount(2);
     treeWidget_variables->hideColumn(1);
     treeWidget_variables->header()->hide();
@@ -767,7 +772,7 @@ dlgTriggerEditor::dlgTriggerEditor(Host* pH)
 
     treeWidget_keys->hide();
     treeWidget_keys->setHost(mpHost);
-    treeWidget_keys->setIsKeyTree();
+    treeWidget_keys->setTreeType(TreeType::Key);
     treeWidget_keys->setColumnCount(1);
     treeWidget_keys->header()->hide();
     treeWidget_keys->setRootIsDecorated(false);
@@ -776,7 +781,7 @@ dlgTriggerEditor::dlgTriggerEditor(Host* pH)
 
     treeWidget_scripts->hide();
     treeWidget_scripts->setHost(mpHost);
-    treeWidget_scripts->setIsScriptTree();
+    treeWidget_scripts->setTreeType(TreeType::Script);
     treeWidget_scripts->setColumnCount(1);
     treeWidget_scripts->header()->hide();
     treeWidget_scripts->setRootIsDecorated(false);
@@ -2349,21 +2354,11 @@ void dlgTriggerEditor::slot_searchMudletItems(const int index)
         searchVariables(s);
     }
 
-    // TODO: Edbee search term highlighter
-
-    // As it is, findNext() and selectNext() are exactly the same. You could
-    // do a selectAll(), but that would create a cursor for each found instance,
-    // and would likely do things the user wasn't expecting.
-
-    // Although there are some findHighlight code entries in libedbee, the
-    // functionality isn't implemented.
-
     mpSourceEditorEdbee->controller()->textSearcher()->setSearchTerm(s);
     mpSourceEditorEdbee->controller()->textSearcher()->setCaseSensitive(mSearchOptions & SearchOptionCaseSensitive);
 
     treeWidget_searchResults->setUpdatesEnabled(true);
 
-    // Need to highlight the contents if something is already showing in the editor:
     mpSourceEditorEdbee->controller()->update();
 }
 
