@@ -211,9 +211,7 @@ void TTreeWidget::rowsInserted(const QModelIndex& parent, int start, int end)
                 childID = parent.model()->index(start, 0).data(Qt::UserRole).toInt();
             }
 
-            // Emit signal for undo system before performing the move
-            emit itemMoved(childID, moveInfo.oldParentID, newParentID, moveInfo.oldPosition, childPosition);
-
+            // Perform the backend reparenting first so icons update correctly
             switch (mTreeType) {
             case TreeType::Trigger:
                 mpHost->getTriggerUnit()->reParentTrigger(childID, moveInfo.oldParentID, newParentID, parentPosition, childPosition);
@@ -269,6 +267,9 @@ void TTreeWidget::rowsInserted(const QModelIndex& parent, int start, int end)
                 qWarning().nospace().noquote() << "TTreeWidget::rowsInserted(...) WARNING - a TTreeWidget item which has not been classified as a mudlet type detected.";
                 break;
             }
+
+            // Emit signal after updating backend data so icons update correctly
+            emit itemMoved(childID, moveInfo.oldParentID, newParentID, moveInfo.oldPosition, childPosition);
         }
 
         // If moving multiple items, signal end of batch operation for undo system
