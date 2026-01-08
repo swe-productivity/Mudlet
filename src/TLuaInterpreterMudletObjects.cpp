@@ -1134,6 +1134,30 @@ int TLuaInterpreter::permRegexTrigger(lua_State* L)
     return 1;
 }
 
+// Documentation: TODO (https://wiki.mudlet.org/w/Manual:Lua_Functions#permExactMatchTrigger)
+int TLuaInterpreter::permExactMatchTrigger(lua_State* L)
+{
+    const QString name = getVerifiedString(L, __func__, 1, "trigger name");
+    const QString parent = getVerifiedString(L, __func__, 2, "trigger parent");
+    const QString exactMatchPattern = getVerifiedString(L, __func__, 3, "exact match pattern");
+
+    Host& host = getHostFromLua(L);
+    TLuaInterpreter* pLuaInterpreter = host.getLuaInterpreter();
+    if (auto [validationResult, validationMessage] = pLuaInterpreter->validateLuaCodeParam(4); !validationResult) {
+        lua_pushfstring(L, "permExactMatchTrigger: bad argument #%d (%s)", 4, validationMessage.toUtf8().constData());
+        return lua_error(L);
+    }
+
+    const QString script{lua_tostring(L, 4)};
+    auto [triggerId, message] = pLuaInterpreter->startPermExactMatchTrigger(name, parent, exactMatchPattern, script);
+    if (triggerId == -1) {
+        lua_pushfstring(L, "permExactMatchTrigger: cannot create trigger (%s)", message.toUtf8().constData());
+        return lua_error(L);
+    }
+    lua_pushnumber(L, triggerId);
+    return 1;
+}
+
 // Documentation: https://wiki.mudlet.org/w/Manual:Lua_Functions#permBeginOfLineStringTrigger
 int TLuaInterpreter::permBeginOfLineStringTrigger(lua_State* L)
 {
