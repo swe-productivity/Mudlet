@@ -2,7 +2,7 @@
 name: Feature request
 about: Submit an idea to improve Mudlet
 title: ''
-labels: ''
+labels: ['triage']
 assignees: ''
 type: 'feature'
 
