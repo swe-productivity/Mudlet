@@ -55,6 +55,7 @@
 #include <QNetworkDiskCache>
 #include <QPainter>
 #include <QString>
+#include <QStandardItemModel>
 #include <QTableWidget>
 #include <QToolBar>
 #include <QUiLoader>
@@ -347,6 +348,8 @@ dlgProfilePreferences::dlgProfilePreferences(QWidget* pParentWidget, Host* pHost
         }
     }
 
+    updateVisibilityCombosConstraints();
+
     QSettings settings("Mudlet", "CrashReporter");
     QVariant storedOption = settings.value("autoSendCrashReports", QVariant());
     int option = 2;
@@ -360,6 +363,37 @@ dlgProfilePreferences::dlgProfilePreferences(QWidget* pParentWidget, Host* pHost
 
     connect(label_darkEditorPrompt, &QLabel::linkActivated, this, &dlgProfilePreferences::slot_enableDarkEditor);
     label_darkEditorPrompt->hide();
+}
+
+static void setComboItemEnabled(QStandardItemModel* model, int row, bool isEnabled)
+{
+    if (model->rowCount() > row) {
+        if (auto* item = model->item(row)) {
+            item->setEnabled(isEnabled);
+        }
+    }
+}
+
+void dlgProfilePreferences::updateVisibilityCombosConstraints()
+{
+    auto* menuBarModel = qobject_cast<QStandardItemModel*>(comboBox_menuBarVisibility->model());
+    auto* toolBarModel = qobject_cast<QStandardItemModel*>(comboBox_toolBarVisibility->model());
+
+    if (!menuBarModel || !toolBarModel) {
+        return;
+    }
+
+    setComboItemEnabled(menuBarModel, 0, true);
+    setComboItemEnabled(toolBarModel, 0, true);
+
+    const bool isMenuNever = comboBox_menuBarVisibility->currentIndex() == 0;
+    const bool isToolNever = comboBox_toolBarVisibility->currentIndex() == 0;
+
+    if (isMenuNever && !isToolNever) {
+        setComboItemEnabled(toolBarModel, 0, false);
+    } else if (isToolNever && !isMenuNever) {
+        setComboItemEnabled(menuBarModel, 0, false);
+    }
 }
 
 void dlgProfilePreferences::setupPasswordsMigration()
@@ -4004,20 +4038,24 @@ void dlgProfilePreferences::slot_setMapSymbolFont(const QFont& font)
 // any TConsole instance:
 void dlgProfilePreferences::slot_changeShowMenuBar(int newIndex)
 {
-    if (!newIndex && !comboBox_toolBarVisibility->currentIndex()) {
+    if (newIndex == 0 && !comboBox_toolBarVisibility->currentIndex()) {
         // This control has been set to the "Never" setting but so is the other
         // control - so force it back to the "Only if no profile one
         comboBox_menuBarVisibility->setCurrentIndex(1);
     }
+
+    updateVisibilityCombosConstraints();
 }
 
 void dlgProfilePreferences::slot_changeShowToolBar(int newIndex)
 {
-    if (!newIndex && !comboBox_menuBarVisibility->currentIndex()) {
+    if (newIndex == 0 && !comboBox_menuBarVisibility->currentIndex()) {
         // This control has been set to the "Never" setting but so is the other
         // control - so force it back to the "Only if no profile one
         comboBox_toolBarVisibility->setCurrentIndex(1);
     }
+
+    updateVisibilityCombosConstraints();
 }
 
 void dlgProfilePreferences::slot_changeLogFileAsHtml(const bool isHtml)
