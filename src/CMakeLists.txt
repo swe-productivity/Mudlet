@@ -51,6 +51,7 @@ set(mudlet_SRCS
     dlgAliasMainArea.cpp
     dlgColorTrigger.cpp
     dlgComposer.cpp
+    dlgConfigureAreas.cpp
     dlgConnectionProfiles.cpp
     dlgIRC.cpp
     dlgKeysMainArea.cpp
@@ -232,6 +233,7 @@ set(mudlet_UIS
     ui/aliases_main_area.ui
     ui/color_trigger.ui
     ui/composer.ui
+    ui/configure_areas.ui
     ui/connection_profiles.ui
     ui/dlgPackageExporter.ui
     ui/irc.ui

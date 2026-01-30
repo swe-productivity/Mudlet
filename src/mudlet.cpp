@@ -50,6 +50,7 @@
 #include "TToolBar.h"
 #include "XMLimport.h"
 #include "dlgAboutDialog.h"
+#include "dlgConfigureAreas.h"
 #include "dlgConnectionProfiles.h"
 #include "dlgIRC.h"
 #include "dlgMapper.h"
@@ -1765,6 +1766,19 @@ void mudlet::slot_newMapWindow()
     if (viewId == 0) {
         qWarning() << "mudlet::slot_newMapWindow() - failed to create map view:" << errorMsg;
     }
+}
+
+void mudlet::slot_newAreaConfigurator()
+{
+    Host* pHost = getActiveHost();
+    if (!pHost || !pHost->mpMap) 
+    {
+        return;
+    }
+
+    auto* dlg = new dlgConfigureAreas(pHost->mpMap.data(), this);
+    dlg->setAttribute(Qt::WA_DeleteOnClose);
+    dlg->show();
 }
 
 void mudlet::updateWindowMenu()
