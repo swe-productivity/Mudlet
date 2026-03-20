@@ -6436,11 +6436,13 @@ std::pair<int, QString> TLuaInterpreter::startPermRegexTrigger(const QString& na
 }
 
 // No documentation available in wiki - internal function
-std::pair<int, QString> TLuaInterpreter::startPermExactMatchTrigger(const QString& name, const QString& parent, const QString& exactLine, const QString& function)
+std::pair<int, QString> TLuaInterpreter::startPermExactMatchTrigger(const QString& name, const QString& parent, QStringList& patterns, const QString& function)
 {
     TTrigger* pT;
-    QStringList patterns{ exactLine };
     QList<int> propertyList{ REGEX_EXACT_MATCH };
+    for (int i = 0; i < patterns.size(); i++) {
+        propertyList << REGEX_EXACT_MATCH;
+    }
 
     if (parent.isEmpty()) {
         pT = new TTrigger("a", patterns, propertyList, false, mpHost);

@@ -161,7 +161,7 @@ public:
     int startTempColorTrigger(int, int, const QString&, int expiryCount = -1);
     int startTempPromptTrigger(const QString& function, int expiryCount = -1);
     std::pair<int, QString> startPermRegexTrigger(const QString& name, const QString& parent, QStringList& patterns, const QString& function);
-    std::pair<int, QString> startPermExactMatchTrigger(const QString& name, const QString& parent, const QString& exactLine, const QString& function);
+    std::pair<int, QString> startPermExactMatchTrigger(const QString& name, const QString& parent, QStringList& patterns, const QString& function);
     std::pair<int, QString> startPermSubstringTrigger(const QString& name, const QString& parent, const QStringList& patterns, const QString& function);
     std::pair<int, QString> startPermBeginOfLineStringTrigger(const QString& name, const QString& parent, QStringList& patterns, const QString& function);
     std::pair<int, QString> startPermPromptTrigger(const QString& name, const QString& parent, const QString& function);
