@@ -193,6 +193,11 @@ function read_lua_function_list()
     json_content = read_file("../src/lua-function-list.json")
   end
 
+  if json_content == nil then
+    io.stderr:write("warning: read_lua_function_list: cannot read 'lua-function-list.json', function links will not be generated.\n")
+    return {}
+  end
+
   local fns_table = lunajson.decode(json_content)
   local fns_array = {}
 
