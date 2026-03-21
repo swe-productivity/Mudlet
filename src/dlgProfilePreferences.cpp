@@ -389,17 +389,11 @@ void dlgProfilePreferences::updateVisibilityCombosConstraints()
         return;
     }
 
-    setComboItemEnabled(menuBarModel, 0, true);
-    setComboItemEnabled(toolBarModel, 0, true);
-
     const bool isMenuNever = comboBox_menuBarVisibility->currentIndex() == 0;
     const bool isToolNever = comboBox_toolBarVisibility->currentIndex() == 0;
 
-    if (isMenuNever && !isToolNever) {
-        setComboItemEnabled(toolBarModel, 0, false);
-    } else if (isToolNever && !isMenuNever) {
-        setComboItemEnabled(menuBarModel, 0, false);
-    }
+    setComboItemEnabled(menuBarModel, 0, !isToolNever);
+    setComboItemEnabled(toolBarModel, 0, !isMenuNever);
 }
 
 void dlgProfilePreferences::setupPasswordsMigration()
