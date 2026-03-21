@@ -379,7 +379,13 @@ void dlgProfilePreferences::updateVisibilityCombosConstraints()
     auto* menuBarModel = qobject_cast<QStandardItemModel*>(comboBox_menuBarVisibility->model());
     auto* toolBarModel = qobject_cast<QStandardItemModel*>(comboBox_toolBarVisibility->model());
 
-    if (!menuBarModel || !toolBarModel) {
+    if (!menuBarModel) {
+        qWarning() << "dlgProfilePreferences::updateVisibilityCombosConstraints() WARNING - Unable to cast comboBox_menuBarVisibility model to expected QStandardItemModel!";
+        return;
+    }
+    
+    if (!toolBarModel) {
+        qWarning() << "dlgProfilePreferences::updateVisibilityCombosConstraints() WARNING - Unable to cast comboBox_toolBarVisibility model to expected QStandardItemModel!";
         return;
     }
 
