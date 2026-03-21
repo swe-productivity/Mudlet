@@ -4044,9 +4044,9 @@ void dlgProfilePreferences::slot_setMapSymbolFont(const QFont& font)
 // any TConsole instance:
 void dlgProfilePreferences::slot_changeShowMenuBar(int newIndex)
 {
-    if (newIndex == 0 && !comboBox_toolBarVisibility->currentIndex()) {
+    if (newIndex == 0 && comboBox_toolBarVisibility->currentIndex() == 0) {
         // This control has been set to the "Never" setting but so is the other
-        // control - so force it back to the "Only if no profile one
+        // control - so force it back to the "Until a profile is loaded" setting
         comboBox_menuBarVisibility->setCurrentIndex(1);
     }
 
@@ -4055,9 +4055,9 @@ void dlgProfilePreferences::slot_changeShowMenuBar(int newIndex)
 
 void dlgProfilePreferences::slot_changeShowToolBar(int newIndex)
 {
-    if (newIndex == 0 && !comboBox_menuBarVisibility->currentIndex()) {
+    if (newIndex == 0 && comboBox_menuBarVisibility->currentIndex() == 0) {
         // This control has been set to the "Never" setting but so is the other
-        // control - so force it back to the "Only if no profile one
+        // control - so force it back to the "Until a profile is loaded" setting
         comboBox_toolBarVisibility->setCurrentIndex(1);
     }
 
