@@ -173,7 +173,7 @@ end
 
 function link_function_name(fn_name, input)
   local formatted_link = builder.makeLink("https://wiki.mudlet.org/w/Manual:Lua_Functions#"..fn_name, fn_name)
-  return input:gsub("%f[%a]"..fn_name.."%f[%A]", formatted_link)
+  return input:gsub("%f[%w]"..fn_name.."%f[%W]", formatted_link)
 end
 
 function link_function_names(fn_names, input)
