@@ -51,13 +51,16 @@ end
 local htmlBuilder = {
   headerStart = [[<h5 style='margin-top: 1em;margin-bottom: 1em;'>]],
   headerEnd = "</h5>",
+  makeLink = function(href, content)
+    return string.format([[<a href='%s'>%s</a>]], href, content)
+  end,
   converter = function(text)
     local t = {}
     text = text.."\n"
     for s in string.gmatch(text, "(.-)\n") do
       s = escape_for_html(s)
       s = s:gsub("%(#(.-)%)", [[<a href='https://github.com/Mudlet/Mudlet/pull/%1'>(#%1)</a>]])
-      s = link_functions_html(s)
+      s = link_function_names(lua_function_list, s)
       t[#t+1] = string.format("<p>%s</p>", s)
     end
 
@@ -68,13 +71,16 @@ local htmlBuilder = {
 local mdBuilder = {
   headerStart = "##### ",
   headerEnd = "",
+  makeLink = function(href, content)
+    return string.format("[%s](%s)", content, href)
+  end,
   converter = function(text)
     local t = {}
     text = text.."\n"
     for s in string.gmatch(text, "(.-)\n") do
       s = escape_for_html(s)
       s = s:gsub("%(#(.-)%)", "[#%1](https://github.com/Mudlet/Mudlet/pull/%1)")
-      s = link_functions_md(s)
+      s = link_function_names(lua_function_list, s)
       t[#t+1] = string.format("\\%s\n", s)
     end
 
@@ -210,6 +216,45 @@ end
 function get_changelog(commit1, commit2)
   return os.capture(string.format("git log --pretty=%%s %s..%s", commit1, commit2), true):trim()
 end
+
+function link_function_name(fn_name, input)
+  local formatted_link = builder.makeLink("https://wiki.mudlet.org/w/Manual:Lua_Functions#"..fn_name, fn_name)
+  return input:gsub("%f[%w]"..fn_name.."%f[%W]", formatted_link)
+end
+
+function link_function_names(fn_names, input)
+  for _i, fn_name in ipairs(fn_names) do
+    input = link_function_name(fn_name, input)
+  end
+
+  return input
+end
+
+function read_lua_function_list()
+  local json_content = ""
+  if github_workspace then
+    -- the script struggles to load the load files relatively in CI
+    json_content = read_file(github_workspace.."/src/lua-function-list.json")
+  else
+    json_content = read_file("../src/lua-function-list.json")
+  end
+
+  if json_content == nil then
+    io.stderr:write("warning: read_lua_function_list: cannot read 'lua-function-list.json', function links will not be generated.\n")
+    return {}
+  end
+
+  local fns_table = lunajson.decode(json_content)
+  local fns_array = {}
+
+  for fn_name, _fn_sig in pairs(fns_table) do
+    fns_array[#fns_array+1] = fn_name
+  end
+
+  return fns_array
+end
+
+lua_function_list = read_lua_function_list()
 
 function create_category_pattern(category)
   if not category then return end
