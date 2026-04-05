@@ -835,6 +835,33 @@ void dlgConnectionProfiles::reallyDeleteProfile(const QString& profile)
     listWidget_profiles->setFocus();
 }
 
+QStringList dlgConnectionProfiles::getDeletedDefaults() const
+{
+    auto& settings = *mudlet::self()->mpSettings;
+    return settings.value(qsl("deletedDefaultMuds"), QStringList()).toStringList();
+}
+
+void dlgConnectionProfiles::slot_restoreDefaultProfile(const QString& profile)
+{
+    auto& settings = *mudlet::self()->mpSettings;
+    auto deletedDefaultMuds = getDeletedDefaults();
+
+    if(!deletedDefaultMuds.contains(profile))
+        return;
+
+    deletedDefaultMuds.removeAll(profile);
+    settings.setValue(qsl("deletedDefaultMuds"), deletedDefaultMuds);
+
+    fillout_form();
+}
+
+void dlgConnectionProfiles::slot_restoreAllDefaults()
+{
+    auto& settings = *mudlet::self()->mpSettings;
+    settings.setValue(qsl("deletedDefaultMuds"), QStringList());
+    fillout_form();
+}
+
 // called when the 'delete' button is pressed, raises a dialog to confirm deletion
 // if this profile has been used
 void dlgConnectionProfiles::slot_deleteProfile()

@@ -239,6 +239,7 @@ void mudlet::init()
     menuHelp->setToolTipsVisible(true);
     menuAbout->setToolTipsVisible(true);
 
+    setupRestoreDefaultsMenu();
     setAttribute(Qt::WA_DeleteOnClose);
     const QSizePolicy sizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
     setWindowTitle(scmVersion);
@@ -3219,6 +3220,53 @@ void mudlet::restoreProfileFocus(const QString& profileName)
                 }
             }
         }
+    });
+}
+
+void mudlet::setupRestoreDefaultsMenu()
+{
+    auto restoreDefaultsMenu = menuGames->addMenu(tr("Restore Default Profiles"));
+    connect(restoreDefaultsMenu, &QMenu::aboutToShow, this, [this, restoreDefaultsMenu]() {
+        // Ensure no previous entries exist to avoid duplicates
+        restoreDefaultsMenu->clear();
+        mpSettings->sync(); 
+        QStringList deleted = mpSettings->value(qsl("deletedDefaultMuds"), QStringList()).toStringList();
+        for (const auto& game : TGameDetails::scmDefaultGames) {
+            if (deleted.contains(game.name)) {
+                QAction* restore = new QAction(game.name, restoreDefaultsMenu);
+                connect(restore, &QAction::triggered, this, [this, game]() {
+                    auto* dlg = findChild<dlgConnectionProfiles*>();
+                    // Open dialog if not open
+                    if (!dlg) {
+                        slot_showConnectionDialog();
+                        dlg = findChild<dlgConnectionProfiles*>();
+                    }
+                    // Restore specific deleted game
+                    if (dlg) {
+                        dlg->slot_restoreDefaultProfile(game.name);
+                    }
+                });
+                restoreDefaultsMenu->addAction(restore);
+            }
+        }
+
+        if (!deleted.isEmpty()) {
+            restoreDefaultsMenu->addSeparator();
+            QAction* restoreAll = new QAction(tr("Restore All Defaults"), restoreDefaultsMenu);
+            connect(restoreAll, &QAction::triggered, this, [this]() {
+                auto* dlg = findChild<dlgConnectionProfiles*>();
+                if (!dlg) {
+                    slot_showConnectionDialog();
+                    dlg = findChild<dlgConnectionProfiles*>();
+                }
+                // Restore all default games
+                if (dlg) {
+                    dlg->slot_restoreAllDefaults();
+                }
+            });
+            restoreDefaultsMenu->addAction(restoreAll); 
+        }
+        restoreDefaultsMenu->setEnabled(true);
     });
 }
 

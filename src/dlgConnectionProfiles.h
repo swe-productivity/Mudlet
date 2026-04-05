@@ -50,6 +50,7 @@ public:
     QList<QListWidgetItem*> findData(const QListWidget& listWidget, const QVariant& what, const int role = Qt::UserRole) const;
     QList<int> findProfilesBeginningWith(const QString&) const;
     static const int csmNameRole{Qt::UserRole};
+    QStringList getDeletedDefaults() const;
 
     QString btn_connect_enabled_accessDesc;
     QString btn_load_enabled_accessDesc;
@@ -76,6 +77,8 @@ public slots:
     void slot_addProfile();
     void slot_deleteProfile();
     void slot_reallyDeleteProfile();
+    void slot_restoreDefaultProfile(const QString& profile);
+    void slot_restoreAllDefaults();
 
     void slot_updateAutoConnect(int state);
     void slot_updateAutoReconnect(int state);
