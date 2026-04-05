@@ -1857,38 +1857,28 @@ int TLuaInterpreter::getMapMenus(lua_State* L)
     auto* mp2dMap = host.mpMap->mpMapper->mp2dMap;
     lua_newtable(L);
 
-    if (returnDetailed) {
-        // Iterate in insertion order
-        for (const QString& uniqueName : mp2dMap->mUserMenusOrder) {
-            if (!mp2dMap->mUserMenus.contains(uniqueName)) {
-                continue; // Skip if menu was removed but order list wasn't cleaned up
-            }
-            const QStringList& menuInfo = mp2dMap->mUserMenus[uniqueName];
-            const QString& parent = menuInfo[0];
-            const QString& display = menuInfo[1];
+    // Iterate in insertion order
+    int index = 1;
+    for (const QString& uniqueName : mp2dMap->mUserMenusOrder) {
+        if (!mp2dMap->mUserMenus.contains(uniqueName)) {
+            continue; // Skip if menu was removed but order list wasn't cleaned up
+        }
+        const QStringList& menuInfo = mp2dMap->mUserMenus[uniqueName];
+        const QString& parent = menuInfo[0];
+        const QString& display = menuInfo[1];
 
+        if (returnDetailed) {
+            // Build an integer-indexed array so consumers can use ipairs() and get the correct order
             lua_createtable(L, 0, 3);
             lua_pushstring(L, uniqueName.toUtf8().constData());
             lua_setfield(L, -2, "uniquename");
             lua_pushstring(L, display.toUtf8().constData());
             lua_setfield(L, -2, "name");
-            lua_pushstring(L, parent.toUtf8().constData());
+            lua_pushstring(L, parent.isEmpty() ? "top-level" : parent.toUtf8().constData());
             lua_setfield(L, -2, "parent");
-
-            // Add the menu object to the result table with uniquename as key
-            lua_setfield(L, -2, uniqueName.toUtf8().constData());
-        }
-    } else {
-        // Return original format for backward compatibility
-        // Iterate in insertion order
-        for (const QString& uniqueName : mp2dMap->mUserMenusOrder) {
-            if (!mp2dMap->mUserMenus.contains(uniqueName)) {
-                continue; // Skip if menu was removed but order list wasn't cleaned up
-            }
-            const QStringList& menuInfo = mp2dMap->mUserMenus[uniqueName];
-            const QString& parent = menuInfo[0];
-            const QString& display = menuInfo[1];
-
+            lua_rawseti(L, -2, index++);
+        } else {
+            // Return original format for backward compatibility
             lua_pushstring(L, display.toUtf8().constData());
             lua_pushstring(L, parent.isEmpty() ? "top-level" : parent.toUtf8().constData());
             lua_settable(L, -3);
