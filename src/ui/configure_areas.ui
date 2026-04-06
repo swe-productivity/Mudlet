@@ -2,68 +2,78 @@
 <ui version="4.0">
  <class>configure_areas</class>
  <widget class="QDialog" name="configure_areas">
-  <property name="geometry">
-   <rect>
-    <x>0</x>
-    <y>0</y>
-    <width>400</width>
-    <height>300</height>
-   </rect>
-  </property>
   <property name="windowTitle">
-   <string>Dialog</string>
+   <string>Configure Areas</string>
   </property>
-  <widget class="QTableWidget" name="areaTable">
-   <property name="geometry">
-    <rect>
-     <x>10</x>
-     <y>10</y>
-     <width>381</width>
-     <height>192</height>
-    </rect>
-   </property>
-   <row>
-    <property name="text">
-     <string/>
-    </property>
-   </row>
-   <column>
-    <property name="text">
-     <string>Area Name</string>
-    </property>
-   </column>
-   <column>
-    <property name="text">
-     <string>Rooms</string>
-    </property>
-   </column>
-  </widget>
-  <widget class="QPushButton" name="addAreaBtn">
-   <property name="geometry">
-    <rect>
-     <x>10</x>
-     <y>240</y>
-     <width>93</width>
-     <height>26</height>
-    </rect>
-   </property>
-   <property name="text">
-    <string>Add Area</string>
-   </property>
-  </widget>
-  <widget class="QPushButton" name="removeAreaBtn">
-   <property name="geometry">
-    <rect>
-     <x>110</x>
-     <y>240</y>
-     <width>93</width>
-     <height>26</height>
-    </rect>
-   </property>
-   <property name="text">
-    <string>Remove Area</string>
-   </property>
-  </widget>
+
+  <layout class="QVBoxLayout" name="verticalLayout" stretch="1,0">
+
+   <item>
+    <widget class="QTableWidget" name="areaTable">
+     <property name="sizePolicy">
+      <sizepolicy hsizetype="Expanding" vsizetype="Expanding"/>
+     </property>
+     <column>
+      <property name="text">
+       <string>Area Name</string>
+      </property>
+     </column>
+     <column>
+      <property name="text">
+       <string>Rooms</string>
+      </property>
+     </column>
+    </widget>
+   </item>
+
+    <item>
+     <widget class="QLabel" name="statusLabel">
+      <property name = "text">
+       <string/>
+      </property>
+      <property name="styleSheet">
+       <string>color: red;</string>
+      </property>
+     </widget>
+    </item>
+
+   <item>
+    <layout class="QHBoxLayout" name="buttonLayout">
+
+     <item>
+      <widget class="QPushButton" name="addAreaBtn">
+       <property name="text">
+        <string>Add Area</string>
+       </property>
+      </widget>
+     </item>
+
+     <item>
+      <widget class="QPushButton" name="removeAreaBtn">
+       <property name="text">
+        <string>Remove Area</string>
+       </property>
+      </widget>
+     </item>
+
+     <item>
+      <spacer name="horizontalSpacer">
+       <property name="orientation">
+        <enum>Qt::Horizontal</enum>
+       </property>
+       <property name="sizeHint">
+        <size>
+         <width>40</width>
+         <height>20</height>
+        </size>
+       </property>
+      </spacer>
+     </item>
+
+    </layout>
+   </item>
+
+  </layout>
  </widget>
  <resources/>
  <connections/>

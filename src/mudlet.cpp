@@ -1771,8 +1771,7 @@ void mudlet::slot_newMapWindow()
 void mudlet::slot_newAreaConfigurator()
 {
     Host* pHost = getActiveHost();
-    if (!pHost || !pHost->mpMap) 
-    {
+    if (!pHost || !pHost->mpMap) {
         return;
     }
 

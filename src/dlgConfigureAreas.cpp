@@ -23,13 +23,8 @@
 
 #include "mudlet.h"
 
-#include <QElapsedTimer>
 #include <QInputDialog>
-#include <QListWidget>
-#include <QMenu>
 #include <QMessageBox>
-#include <QPainter>
-#include <QProgressDialog>
 
 enum Columns 
 {
@@ -46,12 +41,13 @@ dlgConfigureAreas::dlgConfigureAreas(TMap* map, QWidget* parent) : QDialog(paren
     areaTable->setSelectionMode(QAbstractItemView::SingleSelection);
 
     setWindowTitle(tr("Configure Areas"));
-    resize(400, 300);
 
-    areaTable->setColumnCount(ColCount);
-    areaTable->setColumnHidden(ColAreaId, true);
-
-    areaTable->setHorizontalHeaderLabels({tr("Area Name"), QString(), tr("Rooms")});
+    areaTable->setColumnCount(3);
+    areaTable->setHorizontalHeaderLabels({tr("Area Name"), tr("Area ID"), tr("Rooms")});
+    areaTable->setColumnHidden(1, true);
+    areaTable->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+    areaTable->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
+    areaTable->horizontalHeader()->setStretchLastSection(true);
 
     connect(addAreaBtn, &QPushButton::clicked, this, &dlgConfigureAreas::slot_addArea);
     connect(removeAreaBtn, &QPushButton::clicked, this, &dlgConfigureAreas::slot_removeArea);
@@ -59,64 +55,56 @@ dlgConfigureAreas::dlgConfigureAreas(TMap* map, QWidget* parent) : QDialog(paren
     populateAreaList();
 }
 
-bool checkDefaultArea(TMap* map, int areaId)
-{
-    if (!map || !map->mpRoomDB) 
-    {
-        return false;
-    }
-
-    const QString defaultAreaName = map->getDefaultAreaName();
-    const auto& areaNames = map->mpRoomDB->getAreaNamesMap();
-
-    return areaNames.value(areaId) == defaultAreaName;
-}
-
 int dlgConfigureAreas::currentAreaId() const
 {
     const auto selected = areaTable->selectionModel()->selectedRows();
-    if (selected.isEmpty()) 
-    {
+    if (selected.isEmpty()) {
         return -1;
     }
 
     return areaTable->item(selected.first().row(), ColAreaId)->text().toInt();
 }
 
-void dlgConfigureAreas::refreshAreas()
+void dlgConfigureAreas::refreshAreas(bool added, const QString& areaName)
 {
-    QWidget* p = parentWidget();
-    while (p) 
-    {
-        const auto mappers = p->findChildren<dlgMapper*>();
-        for (dlgMapper* mapper : mappers) 
-        {
-            mapper->updateAreaComboBox();
-        }
-        p = p->parentWidget();
+    if(!mpMap || !mpMap->mpMapper)
+        return;
+
+    auto mapper = mpMap->mpMapper;
+    mapper->updateAreaComboBox();
+    QComboBox* combo = mapper->findChild<QComboBox*>();
+
+    QString targetArea;
+    if(added) {
+        targetArea = areaName;
     }
+    else {
+        targetArea = mpMap->getDefaultAreaName();
+    }
+
+    const int index = combo->findText(targetArea);
+    if(index >= 0) {
+        mapper->slot_switchArea(index);
+        combo->setCurrentIndex(index);
+    }
+
+    mpMap->setUnsaved(__func__);
 }
 
 void dlgConfigureAreas::populateAreaList()
 {
-    if (!mpMap || !mpMap->mpRoomDB) 
-    {
+    if (!mpMap || !mpMap->mpRoomDB) {
         return;
     }
 
     areaTable->setRowCount(0);
-
     const auto& areaNames = mpMap->mpRoomDB->getAreaNamesMap();
-
     int row = 0;
-    for (auto it = areaNames.begin(); it != areaNames.end(); ++it) 
-    {
+    for (auto it = areaNames.begin(); it != areaNames.end(); ++it) {
         const int areaId = it.key();
         const QString& areaName = it.value();
-
         int roomCount = 0;
-        if (TArea* area = mpMap->mpRoomDB->getArea(areaId)) 
-        {
+        if (TArea* area = mpMap->mpRoomDB->getArea(areaId)) {
             roomCount = area->getAreaRooms().size();
         }
 
@@ -132,71 +120,57 @@ void dlgConfigureAreas::populateAreaList()
 
 void dlgConfigureAreas::slot_addArea()
 {
-    if (!mpMap || !mpMap->mpRoomDB)
-    {
+    if (!mpMap || !mpMap->mpRoomDB) {
         return;
     }
 
     bool ok{};
-    const QString name = QInputDialog::getText(this, tr("Add Area:"), tr("Area Name"), QLineEdit::Normal, QString(), &ok);
-
-    if (!ok || name.trimmed().isEmpty()) 
-    {
+    const QString rawName = QInputDialog::getText(this, tr("Add Area:"), tr("Area Name"), QLineEdit::Normal, QString(), &ok);
+    const QString name = rawName.trimmed();
+    if (!ok || name.isEmpty()) {
         return;
     }
 
-    const int newId = mpMap->mpRoomDB->addArea(name);
-    if (newId <= 0) 
-    {
-        QMessageBox::warning(this, tr("Cannot add area"), tr("Area with this name already exists."));
+    if (mpMap->mpRoomDB->getAreaNamesMap().values().count(name) > 0) {
+        statusLabel->setText(tr("Area with this name already exists."));
         return;
     }
+
+    mpMap->mpRoomDB->addArea(name);
+    statusLabel->clear();
 
     populateAreaList();
-    refreshAreas();
+    refreshAreas(true, name);
 }
 
 void dlgConfigureAreas::slot_removeArea()
 {
-    if (!mpMap || !mpMap->mpRoomDB) 
-    {
+    if (!mpMap || !mpMap->mpRoomDB) {
         return;
     }
 
     const int areaId = currentAreaId();
-    if (areaId <= 0) 
-    {
-        return;
-    }
-
-    if (checkDefaultArea(mpMap, areaId)) 
-    {
-        QMessageBox::warning(this, tr("Cannot delete area"), tr("Default area cannot be deleted."));
+    if (areaId == -1) {
+        statusLabel->setText(tr("Default area cannot be deleted."));
         return;
     }
 
     TArea* area = mpMap->mpRoomDB->getArea(areaId);
     const int roomCount = area ? area->getAreaRooms().size() : 0;
+    if (roomCount > 0) {
+        const auto reply = QMessageBox::warning(this, tr("Delete area"), tr("This will also delete %1 rooms.\nDo you want to continue?").arg(roomCount),
+                           QMessageBox::Yes | QMessageBox::No,
+                           QMessageBox::No);
 
-    if (roomCount > 0) 
-    {
-        QMessageBox::warning(this, tr("Cannot delete area"), tr("This area contains %1 rooms.\n"
-               "Move or delete the rooms first.").arg(roomCount));
-        return;
-    }
-
-    const QString areaName = mpMap->mpRoomDB->getAreaNamesMap().value(areaId);
-
-    const auto ret = QMessageBox::warning(this, tr("Delete Area"), tr("Delete empty area \"%1\"?").arg(areaName),
-                                        QMessageBox::Yes | QMessageBox::Cancel, QMessageBox::Cancel);
-
-    if (ret != QMessageBox::Yes) 
-    {
-        return;
+        if (reply != QMessageBox::Yes) {
+            return;
+        }
     }
 
     mpMap->mpRoomDB->removeArea(areaId);
+    statusLabel->clear();
 
     populateAreaList();
-    refreshAreas();
+    refreshAreas(false, QString());
 }
+

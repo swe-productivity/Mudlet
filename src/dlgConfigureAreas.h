@@ -36,7 +36,7 @@ public slots:
 
 private:
     void populateAreaList();
-    void refreshAreas();
+    void refreshAreas(bool added, const QString& areaName);
     int currentAreaId() const;
 
     TMap* mpMap = nullptr;
