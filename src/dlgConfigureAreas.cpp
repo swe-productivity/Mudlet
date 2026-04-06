@@ -117,8 +117,6 @@ void dlgConfigureAreas::populateAreaList()
         areaTable->setItem(row, ColRoomCount, new QTableWidgetItem(QString::number(roomCount)));
         ++row;
     }
-
-    areaTable->resizeColumnsToContents();
 }
 
 void dlgConfigureAreas::slot_addArea()
