@@ -37,6 +37,9 @@ enum Columns
 dlgConfigureAreas::dlgConfigureAreas(TMap* map, QWidget* parent) : QDialog(parent), mpMap(map)
 {
     setupUi(this);
+    if(mpMap) {
+        connect(mpMap, &TMap::signal_roomsChanged, this, &dlgConfigureAreas::populateAreaList);
+    }
     areaTable->setSelectionBehavior(QAbstractItemView::SelectRows);
     areaTable->setSelectionMode(QAbstractItemView::SingleSelection);
 

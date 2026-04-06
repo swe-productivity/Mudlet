@@ -76,6 +76,7 @@ class TMap : public QObject
 signals:
     void signal_saveErrorChanged(bool hasError);
     void signal_areaChanged(int areaId);
+    void signal_roomsChanged();
 
 private:
     QString mDefaultAreaName;

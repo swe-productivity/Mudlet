@@ -3320,6 +3320,7 @@ void T2DMap::slot_createRoom()
     isCenterViewCall = true;
     mpMap->updateArea(mAreaID);
     isCenterViewCall = false;
+    emit mpMap->signal_roomsChanged();
     mpMap->setUnsaved(__func__);
 }
 
@@ -4106,6 +4107,7 @@ void T2DMap::slot_deleteRoom()
     mMultiSelectionListWidget.clear();
     mMultiSelectionListWidget.hide();
     repaint();
+    emit mpMap->signal_roomsChanged();
     mpMap->setUnsaved(__func__);
 }
 
