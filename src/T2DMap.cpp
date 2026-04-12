@@ -3711,23 +3711,27 @@ void T2DMap::slot_toggleMapViewOnly()
 void T2DMap::populateUserContextMenus(QMenu& menu)
 {
     QMap<QString, QMenu*> userMenus;
-    QMapIterator<QString, QStringList> menuIterator(mUserMenus);
 
-    while (menuIterator.hasNext()) {
-        menuIterator.next();
-        const QStringList menuInfo = menuIterator.value();
+    // First pass: create all menus in insertion order
+    for (const QString& uniqueName : mUserMenusOrder) {
+        if (!mUserMenus.contains(uniqueName)) {
+            continue; // Skip if menu was removed
+        }
+        const QStringList menuInfo = mUserMenus.value(uniqueName);
         const QString displayName = menuInfo.value(1);
         auto* userMenu = new QMenu(displayName, &menu);
-        userMenus.insert(menuIterator.key(), userMenu);
+        userMenus.insert(uniqueName, userMenu);
     }
 
-    menuIterator.toFront();
-    while (menuIterator.hasNext()) {
-        menuIterator.next();
-        const QStringList menuInfo = menuIterator.value();
+    // Second pass: add menus to their parents in insertion order
+    for (const QString& uniqueName : mUserMenusOrder) {
+        if (!mUserMenus.contains(uniqueName)) {
+            continue; // Skip if menu was removed
+        }
+        const QStringList menuInfo = mUserMenus.value(uniqueName);
         const QString menuParent = menuInfo.value(0);
 
-        if (auto* childMenu = userMenus.value(menuIterator.key(), nullptr)) {
+        if (auto* childMenu = userMenus.value(uniqueName, nullptr)) {
             if (menuParent.isEmpty()) {
                 menu.addMenu(childMenu);
             } else if (auto* parentMenu = userMenus.value(menuParent, nullptr)) {

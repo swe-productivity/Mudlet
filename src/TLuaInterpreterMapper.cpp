@@ -562,7 +562,12 @@ int TLuaInterpreter::addMapMenu(lua_State* L)
     if (host.mpMap) {
         if (host.mpMap->mpMapper) {
             if (host.mpMap->mpMapper->mp2dMap) {
-                host.mpMap->mpMapper->mp2dMap->mUserMenus.insert(uniqueName, menuList);
+                auto* mp2dMap = host.mpMap->mpMapper->mp2dMap;
+                mp2dMap->mUserMenus.insert(uniqueName, menuList);
+                // Track insertion order - only add if not already present
+                if (!mp2dMap->mUserMenusOrder.contains(uniqueName)) {
+                    mp2dMap->mUserMenusOrder.append(uniqueName);
+                }
             }
         }
     }
@@ -1844,18 +1849,40 @@ int TLuaInterpreter::getMapMenus(lua_State* L)
         return warnArgumentValue(L, __func__, "you haven't opened a map yet");
     }
 
+    bool returnDetailed = false;
+    if (lua_gettop(L) > 0) {
+        returnDetailed = getVerifiedBool(L, __func__, 1, "return detailed information", true);
+    }
+
+    auto* mp2dMap = host.mpMap->mpMapper->mp2dMap;
     lua_newtable(L);
-    QMapIterator<QString, QStringList> it(host.mpMap->mpMapper->mp2dMap->mUserMenus);
-    while (it.hasNext()) {
-        it.next();
-        QString parent, display;
-        QStringList menuInfo = it.value();
-        parent = menuInfo[0];
-        display = menuInfo[1];
-        qDebug() << it.key() << parent << display;
-        lua_pushstring(L, display.toUtf8().constData());
-        lua_pushstring(L, parent.isEmpty() ? "top-level" : parent.toUtf8().constData());
-        lua_settable(L, -3);
+
+    // Iterate in insertion order
+    int index = 1;
+    for (const QString& uniqueName : mp2dMap->mUserMenusOrder) {
+        if (!mp2dMap->mUserMenus.contains(uniqueName)) {
+            continue; // Skip if menu was removed but order list wasn't cleaned up
+        }
+        const QStringList& menuInfo = mp2dMap->mUserMenus[uniqueName];
+        const QString& parent = menuInfo[0];
+        const QString& display = menuInfo[1];
+
+        if (returnDetailed) {
+            // Build an integer-indexed array so consumers can use ipairs() and get the correct order
+            lua_createtable(L, 0, 3);
+            lua_pushstring(L, uniqueName.toUtf8().constData());
+            lua_setfield(L, -2, "uniquename");
+            lua_pushstring(L, display.toUtf8().constData());
+            lua_setfield(L, -2, "name");
+            lua_pushstring(L, parent.isEmpty() ? "top-level" : parent.toUtf8().constData());
+            lua_setfield(L, -2, "parent");
+            lua_rawseti(L, -2, index++);
+        } else {
+            // Return original format for backward compatibility
+            lua_pushstring(L, display.toUtf8().constData());
+            lua_pushstring(L, parent.isEmpty() ? "top-level" : parent.toUtf8().constData());
+            lua_settable(L, -3);
+        }
     }
 
     return 1;
@@ -2899,35 +2926,40 @@ int TLuaInterpreter::removeMapMenu(lua_State* L)
     if (host.mpMap) {
         if (host.mpMap->mpMapper) {
             if (host.mpMap->mpMapper->mp2dMap) {
-                host.mpMap->mpMapper->mp2dMap->mUserMenus.remove(uniqueName);
+                auto* mp2dMap = host.mpMap->mpMapper->mp2dMap;
+                mp2dMap->mUserMenus.remove(uniqueName);
                 //remove all entries with this as parent
                 QStringList removeList;
                 removeList.append(uniqueName);
                 bool newElement = true;
                 while (newElement) {
                     newElement = false;
-                    QMapIterator<QString, QStringList> it(host.mpMap->mpMapper->mp2dMap->mUserMenus);
+                    QMapIterator<QString, QStringList> it(mp2dMap->mUserMenus);
                     while (it.hasNext()) {
                         it.next();
                         QStringList menuInfo = it.value();
                         const QString parent = menuInfo[0];
                         if (removeList.contains(parent)) {
-                            host.mpMap->mpMapper->mp2dMap->mUserMenus.remove(it.key());
+                            mp2dMap->mUserMenus.remove(it.key());
                             if (it.key() != "" && !removeList.contains(it.key())) {
-                                host.mpMap->mpMapper->mp2dMap->mUserMenus.remove(it.key());
+                                mp2dMap->mUserMenus.remove(it.key());
                                 removeList.append(it.key());
                                 newElement = true;
                             }
                         }
                     }
                 }
-                QMapIterator<QString, QStringList> it2(host.mpMap->mpMapper->mp2dMap->mUserActions);
+                QMapIterator<QString, QStringList> it2(mp2dMap->mUserActions);
                 while (it2.hasNext()) {
                     it2.next();
                     const QString actParent = it2.value()[1];
                     if (removeList.contains(actParent)) {
-                        host.mpMap->mpMapper->mp2dMap->mUserActions.remove(it2.key());
+                        mp2dMap->mUserActions.remove(it2.key());
                     }
+                }
+                // Remove all deleted menus from the order list
+                for (const QString& menuToRemove : removeList) {
+                    mp2dMap->mUserMenusOrder.removeAll(menuToRemove);
                 }
             }
         }

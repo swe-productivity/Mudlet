@@ -217,6 +217,8 @@ public:
 
     // unique name, List:parent name ("" if null), display name
     QMap<QString, QStringList> mUserMenus;
+    // Tracks insertion order of menu unique names (preserves creation order)
+    QList<QString> mUserMenusOrder;
 
     bool mRoomBeingMoved = false;
     QPointF mRoomMoveLastMapPoint;
