@@ -159,6 +159,7 @@ public:
     int startTempColorTrigger(int, int, const QString&, int expiryCount = -1);
     int startTempPromptTrigger(const QString& function, int expiryCount = -1);
     std::pair<int, QString> startPermRegexTrigger(const QString& name, const QString& parent, QStringList& patterns, const QString& function);
+    std::pair<int, QString> startPermExactMatchTrigger(const QString& name, const QString& parent, QStringList& patterns, const QString& function);
     std::pair<int, QString> startPermSubstringTrigger(const QString& name, const QString& parent, const QStringList& patterns, const QString& function);
     std::pair<int, QString> startPermExactMatchTrigger(const QString& name, const QString& parent, const QStringList& patterns, const QString& function);
     std::pair<int, QString> startPermBeginOfLineStringTrigger(const QString& name, const QString& parent, QStringList& patterns, const QString& function);
@@ -540,6 +541,7 @@ public:
     static int calcFontHeight(int size);
     static int calcFontSize(lua_State*);
     static int permRegexTrigger(lua_State*);
+    static int permExactMatchTrigger(lua_State*);
     static int permSubstringTrigger(lua_State*);
     static int permExactMatchTrigger(lua_State*);
     static int permTimer(lua_State*);
