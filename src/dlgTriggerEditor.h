@@ -174,7 +174,7 @@ public:
     Q_DISABLE_COPY(dlgTriggerEditor)
     dlgTriggerEditor(Host*);
 
-    Q_DECLARE_FLAGS(SearchOptions,SearchOption)
+    Q_DECLARE_FLAGS(SearchOptions, SearchOption)
 
     void closeEvent(QCloseEvent* event) override;
     void focusInEvent(QFocusEvent*) override;
@@ -183,12 +183,13 @@ public:
     void enterEvent(TEnterEvent* event) override;
     bool eventFilter(QObject*, QEvent* event) override;
     bool event(QEvent* event) override;
-    void resizeEvent(QResizeEvent *event) override;
+    void resizeEvent(QResizeEvent* event) override;
     void changeEvent(QEvent* e) override;
     void fillout_form();
     void showError(const QString&);
     void showWarning(const QString&, bool announce = true);
     void showInfo(const QString&);
+    void updateSingleTriggerIcon(QTreeWidgetItem* pItem);
     void children_icon_triggers(QTreeWidgetItem* pWidgetItemParent);
     void children_icon_alias(QTreeWidgetItem* pWidgetItemParent);
     void children_icon_key(QTreeWidgetItem* pWidgetItemParent);
@@ -294,7 +295,7 @@ public slots:
     void slot_scriptMainAreaDeleteHandler();
     void slot_scriptMainAreaAddHandler();
     void slot_scriptMainAreaEditHandler();
-    void slot_scriptMainAreaClearHandlerSelection(QListWidgetItem *);
+    void slot_scriptMainAreaClearHandlerSelection(QListWidgetItem*);
     void slot_keyGrab();
     void slot_profileSaveAction();
     void slot_profileSaveAsAction();
@@ -406,7 +407,7 @@ private:
     void addTrigger(bool);
     void addAction(bool);
     void addKey(bool);
-    void timerEvent(QTimerEvent *event) override;
+    void timerEvent(QTimerEvent* event) override;
 
     void selectTriggerByID(int id);
     void selectTimerByID(int id);
@@ -432,12 +433,12 @@ private:
     void expand_child_action(TAction*, QTreeWidgetItem*);
     void expand_child_key(TKey* pTriggerParent, QTreeWidgetItem* pWidgetItemParent);
 
-    void exportTrigger(const QString &fileName);
-    void exportTimer(const QString &fileName);
-    void exportAlias(const QString &fileName);
-    void exportAction(const QString &fileName);
-    void exportScript(const QString &fileName);
-    void exportKey(const QString &fileName);
+    void exportTrigger(const QString& fileName);
+    void exportTimer(const QString& fileName);
+    void exportAlias(const QString& fileName);
+    void exportAction(const QString& fileName);
+    void exportScript(const QString& fileName);
+    void exportKey(const QString& fileName);
 
     void exportTriggerToClipboard();
     void exportTimerToClipboard();
@@ -603,7 +604,7 @@ private:
     QWidget* mpWidget_triggerItems = nullptr;
     // this widget holds the errors, trigger patterns, and all other widgets that aren't edbee
     // in it, as a workaround for an extra splitter getting created by Qt below the error msg otherwise
-    QWidget *mpNonCodeWidgets = nullptr;
+    QWidget* mpNonCodeWidgets = nullptr;
     dlgActionMainArea* mpActionsMainArea = nullptr;
     dlgAliasMainArea* mpAliasMainArea = nullptr;
     dlgKeysMainArea* mpKeysMainArea = nullptr;
