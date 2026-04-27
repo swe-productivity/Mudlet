@@ -598,6 +598,11 @@ void dlgMapper::slot_setupMapperMenu()
     menu->addAction(show3DMapAction);
 #endif
 
+    menu->addSeparator();
+    auto* newAreaConfigurator = new QAction(tr("Configure areas"), this);
+    connect(newAreaConfigurator, &QAction::triggered, mudlet::self(), &mudlet::slot_newAreaConfigurator);
+    menu->addAction(newAreaConfigurator);
+
     // Add separator and Info submenu
     menu->addSeparator();
     mpInfoMenu = menu->addMenu(tr("Info overlays"));

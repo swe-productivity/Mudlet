@@ -437,6 +437,7 @@ public slots:
     void slot_toggleAlwaysOnTop();
     void slot_minimize();
     void slot_newMapWindow();
+    void slot_newAreaConfigurator();
     void updateWindowMenu();
     void slot_activateMainWindow();
     void slot_activateDetachedWindow();
