@@ -2,7 +2,7 @@
 name: Bug report
 about: Report a bug to help improve Mudlet
 title: ''
-labels: ['']
+labels: ['triage']
 assignees: ''
 type: 'bug'
 
@@ -17,7 +17,12 @@ type: 'bug'
 2. 
 3. 
 
+#### Mudlet version and operating system:
+
+- **Mudlet version:** 
+- **Operating system:** 
+
 #### Error output
 
 
-#### Extra information, such as the Mudlet version, operating system and ideas for how to solve:
+#### Extra information, such as ideas for how to solve:
